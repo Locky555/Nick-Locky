@@ -4,11 +4,11 @@ import requests
 from difflib import get_close_matches
 from flask import Flask, request, jsonify, render_template
 
-# ---------- Config (env vars) ----------
+# ---------- Config (locals only) ----------
 USE_MONGO = os.getenv("USE_MONGO", "false").lower() in {"1", "true", "yes", "on"}
 
-# Point this at your local Ollama or your friend's host (VPN/LAN/public)
-OLLAMA_API_URL = os.getenv("OLLAMA_API_URL", "http://127.0.0.1:11434/api/chat")
+# Hard-lock to LOCALHOST Ollama. No env override.
+OLLAMA_API_URL = "http://127.0.0.1:11434/api/chat"
 MODEL_NAME = os.getenv("MODEL_NAME", "deepseek-r1:8b")
 
 HOST = os.getenv("HOST", "127.0.0.1")
@@ -164,10 +164,14 @@ User Question: {user_input}
 Answer:"""
 
     try:
+        # NOTE: no timeout => wait as long as needed for slow local generation
         resp = requests.post(
             OLLAMA_API_URL,
-            json={"model": MODEL_NAME, "messages": [{"role": "user", "content": prompt}], "stream": False},
-            timeout=60
+            json={
+                "model": MODEL_NAME,
+                "messages": [{"role": "user", "content": prompt}],
+                "stream": False
+            }
         )
         if not resp.ok:
             print("Ollama HTTP error:", resp.status_code, resp.text[:200])
@@ -178,13 +182,11 @@ Answer:"""
         cleaned = clean_ollama_response(raw_answer)
         concise = extract_last_paragraph(cleaned) or "I couldn't find a clear answer in the documents."
         return jsonify({"response": concise})
-    except requests.Timeout:
-        return jsonify({"response": "LLM call timed out. Please try again."}), 504
     except Exception as e:
         print("LLM error:", str(e))
         return jsonify({"response": "An error occurred connecting to Ollama."}), 502
 
 # ---------- Runner ----------
 if __name__ == "__main__":
-    print(f"Starting Flask on http://{HOST}:{PORT}  (debug={DEBUG}) | USE_MONGO={USE_MONGO}")
+    print(f"Starting Flask on http://{HOST}:{PORT}  (debug={DEBUG}) | USE_MONGO={USE_MONGO} | LOCAL_OLLAMA_ONLY")
     app.run(host=HOST, port=PORT, debug=DEBUG)
