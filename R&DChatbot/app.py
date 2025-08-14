@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify, render_template
 from multi_rag import MultiRAG
 from pymongo import MongoClient
+from difflib import get_close_matches
 import requests
 import re
 
@@ -38,11 +39,36 @@ def detect_major(text):
 def index():
     return render_template('index.html')
 
+SMALL_TALK_RESPONSES = {
+    "hello": "Hi there! How can I help you with your study plan?",
+    "hi": "Hello! How can I assist you today?",
+    "hey": "Hey! Looking for a study plan or need help?",
+    "thanks": "You're welcome!",
+    "thank you": "Happy to help!",
+    "who are you": "I'm a helpful assistant trained to guide you through your course planning and study queries.",
+    "who is the best rnd client": "The legend Matthew! 😎",
+}
+
+def match_small_talk(input_text):
+    matches = get_close_matches(input_text.lower(), SMALL_TALK_RESPONSES.keys(), n=1, cutoff=0.8)
+    if matches:
+        return SMALL_TALK_RESPONSES[matches[0]]
+    return None
+
 @app.route('/chat', methods=['POST'])
 def chat():
-    user_input = request.json.get('message')
+    user_input = request.json.get('message', '').strip()
     print("💬 User:", user_input)
 
+    if not user_input:
+        return jsonify({ "response": "No message received." }), 400
+
+    # 🗨️ Small talk handler
+    small_talk_reply = match_small_talk(user_input)
+    if small_talk_reply:
+        return jsonify({ "response": small_talk_reply })
+
+    # 📘 Study plan logic
     if re.search(r"study\s*plan|course\s*list", user_input.lower()):
         detected_major = detect_major(user_input) or "Software Development"
         match_year = re.search(r"year\s*([1-3])", user_input.lower())
@@ -83,8 +109,11 @@ def chat():
 
         return jsonify({ "response": output.strip() })
 
-    # Else: PDF descriptor-based Q&A
+    # 📄 PDF-based Q&A fallback
     context = rag.retrieve_relevant_context(user_input)
+    if not context:
+        return jsonify({ "response": "No relevant information found in the documents." })
+
     prompt = f"""You are a helpful assistant. Use the provided context to answer concisely and clearly. Do not guess. Only use what's found in the context.
 
 Context:
@@ -113,7 +142,3 @@ Answer:"""
     except Exception as e:
         print("Error:", str(e))
         return jsonify({ "response": "An error occurred connecting to Ollama." })
-
-if __name__ == '__main__':
-    app.run(debug=True)
-
