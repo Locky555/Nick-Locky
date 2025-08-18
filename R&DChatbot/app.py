@@ -5,7 +5,7 @@ from difflib import get_close_matches
 from flask import Flask, request, jsonify, render_template
 
 # ---------- Config (locals only) ----------
-USE_MONGO = os.getenv("USE_MONGO", "false").lower() in {"1", "true", "yes", "on"}
+USE_MONGO = os.getenv("USE_MONGO", "true").lower() in {"1", "true", "yes", "on"}
 
 # Hard-lock to LOCALHOST Ollama. No env override.
 OLLAMA_API_URL = "http://127.0.0.1:11434/api/chat"
