@@ -1,81 +1,86 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Ollama Chatbot</title>
+  <meta charset="UTF-8" />
+  <title>BCIS Course Advisor</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
+    :root { color-scheme: light dark; }
     body {
-      font-family: Arial, sans-serif;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
       background: #f0f0f0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
     }
-   #chat-container {
-  width: 360px;
-  height: 600px; /* Fixed height */
-  background: white;
-  border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-   #messages {
-  flex-grow: 1;
-  padding: 15px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-}
-
+    #chat-container {
+      width: 360px;
+      height: 600px;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 14px rgba(0,0,0,.15);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    #messages {
+      flex: 1;
+      padding: 14px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      background: #fafafa;
+    }
     .message {
-      margin: 10px 0;
-      max-width: 80%;
+      max-width: 85%;
       padding: 10px 14px;
-      border-radius: 20px;
-      display: inline-block;
-      clear: both;
+      border-radius: 18px;
+      line-height: 1.35;
+      white-space: pre-wrap;      /* preserve newlines from server */
+      overflow-wrap: anywhere;    /* wrap long tokens */
     }
     .user {
-      background: #e67002;
-      color: white;
       align-self: flex-end;
-      float: right;
+      background: #e67002;
+      color: #fff;
+      border-bottom-right-radius: 6px;
     }
     .bot {
-      background: #e5e5ea;
-      color: black;
       align-self: flex-start;
-      float: left;
+      background: #e5e5ea;
+      color: #111;
+      border-bottom-left-radius: 6px;
     }
     #input-box {
       display: flex;
-      border-top: 1px solid #ccc;
+      border-top: 1px solid #e5e5ea;
+      background: #fff;
     }
     #user-input {
       flex: 1;
-      padding: 10px;
-      border: none;
-      font-size: 16px;
-      border-radius: 0;
+      border: 0;
+      padding: 12px;
+      font-size: 15px;
+      outline: none;
     }
     #send-button {
-      padding: 10px 15px;
+      border: 0;
+      padding: 0 16px;
       background: #ff6600f0;
-      color: white;
-      border: none;
+      color: #fff;
+      font-weight: 600;
       cursor: pointer;
     }
+    #send-button:disabled { opacity: .6; cursor: not-allowed; }
   </style>
 </head>
 <body>
   <div id="chat-container">
     <div id="messages"></div>
     <div id="input-box">
-      <input type="text" id="user-input" placeholder="Type a message..." />
+      <input id="user-input" placeholder="e.g. software development courses year 2" />
       <button id="send-button">Send</button>
     </div>
   </div>
@@ -85,37 +90,47 @@
     const sendButton = document.getElementById('send-button');
     const messagesDiv = document.getElementById('messages');
 
-    function appendMessage(text, sender) {
-      const msg = document.createElement('div');
-      msg.className = `message ${sender}`;
-      msg.textContent = text;
-      messagesDiv.appendChild(msg);
+    function appendMessage(text, who) {
+      const el = document.createElement('div');
+      el.className = `message ${who}`;
+      el.textContent = text;
+      messagesDiv.appendChild(el);
       messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      return el;
     }
 
-    sendButton.onclick = async () => {
+    async function sendMessage() {
       const message = input.value.trim();
       if (!message) return;
-
       appendMessage(message, 'user');
       input.value = '';
-      appendMessage("...", 'bot');  // temporary placeholder
+      sendButton.disabled = true;
+      const placeholder = appendMessage('…', 'bot');
 
-      const res = await fetch('/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message })
-      });
-      const data = await res.json();
+      try {
+        const res = await fetch('/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message })
+        });
+        const data = await res.json();
+        placeholder.textContent = data.response || '(no response)';
+      } catch (e) {
+        placeholder.textContent = 'Error contacting server.';
+        console.error(e);
+      } finally {
+        sendButton.disabled = false;
+        input.focus();
+      }
+    }
 
-      // Replace the "..." placeholder
-      const allMessages = messagesDiv.querySelectorAll('.bot');
-      if (allMessages.length > 0) allMessages[allMessages.length - 1].textContent = data.response;
-    };
-
-    input.addEventListener('keypress', function (e) {
-      if (e.key === 'Enter') sendButton.click();
+    sendButton.addEventListener('click', sendMessage);
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter') sendMessage();
     });
+
+    // greet
+    appendMessage('Hi! Im your A.I BCIS Course Advisor\nAsk me about\n- Specific course info eg. comp503\n- Prereqisites\n- Major papers', 'bot');
   </script>
 </body>
 </html>
