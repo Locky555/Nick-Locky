@@ -1,0 +1,48 @@
+{"code": "COMP500", "title": "Programming Concepts and Techniques", "semesters": ["S1", "S2", "SS"], "year": 1, "majors": ["Computer Science", "Data Science", "Digital Services", "Networks & Cybersecurity", "Software Development"], "note": "", "core_type": "Year1 Core (all majors)"}
+{"code": "COMP501", "title": "Computing Technology in Society", "semesters": ["S1", "S2"], "year": 1, "majors": ["Computer Science", "Data Science", "Digital Services", "Networks & Cybersecurity", "Software Development"], "note": "", "core_type": "Year1 Core (all majors)"}
+{"code": "COMP503", "title": "Object Oriented Programming", "semesters": ["S1", "S2"], "year": 1, "majors": ["Computer Science", "Software Development"], "note": "", "core_type": "Major/Elective"}
+{"code": "COMP504", "title": "Networks and Internet", "semesters": ["S1", "S2"], "year": 1, "majors": ["Networks & Cybersecurity"], "note": "", "core_type": "Major/Elective"}
+{"code": "COMP507", "title": "IT Project Management", "semesters": ["S1", "S2"], "year": 1, "majors": ["Computer Science", "Data Science", "Digital Services", "Networks & Cybersecurity", "Software Development"], "note": "", "core_type": "Year1 Core (all majors)"}
+{"code": "COMP508", "title": "Database System Design", "semesters": ["S1", "S2"], "year": 1, "majors": ["Computer Science", "Data Science", "Digital Services", "Networks & Cybersecurity", "Software Development"], "note": "", "core_type": "Year1 Core (all majors)"}
+{"code": "COMP517", "title": "Data Analysis", "semesters": ["S2"], "year": 1, "majors": ["Data Science"], "note": "", "core_type": "Major/Elective"}
+{"code": "DIGD507", "title": "Mahi Tahi: Collaborative Practices", "semesters": ["S1", "S2"], "year": 1, "majors": ["Computer Science", "Data Science", "Digital Services", "Networks & Cybersecurity", "Software Development"], "note": "", "core_type": "Year1 Core (all majors)"}
+{"code": "INFS502", "title": "Digital Services in IT", "semesters": ["S2"], "year": 1, "majors": ["Digital Services"], "note": "", "core_type": "Major/Elective"}
+{"code": "MATH502", "title": "Algebra and Discrete Mathematics", "semesters": ["S2"], "year": 1, "majors": ["Computer Science", "Data Science", "Digital Services", "Networks & Cybersecurity", "Software Development"], "note": "Year-1 CORE: choose ONE of MATH502 or MATH503", "core_type": "Year1 Core (all majors)"}
+{"code": "MATH503", "title": "Mathematics for Computing", "semesters": ["S1", "S2", "SS"], "year": 1, "majors": ["Computer Science", "Data Science", "Digital Services", "Networks & Cybersecurity", "Software Development"], "note": "Year-1 CORE: choose ONE of MATH502 or MATH503", "core_type": "Year1 Core (all majors)"}
+{"code": "COMP602", "title": "Software Development Practice", "semesters": ["S1", "S2"], "year": 2, "majors": ["Software Development"], "note": "", "core_type": "Major/Elective"}
+{"code": "COMP603", "title": "Program Design and Construction", "semesters": ["S1", "S2"], "year": 2, "majors": ["Digital Services", "Software Development"], "note": "", "core_type": "Major/Elective"}
+{"code": "COMP604", "title": "Operating Systems", "semesters": ["S1", "S2"], "year": 2, "majors": ["Networks & Cybersecurity", "Software Development"], "note": "", "core_type": "Major/Elective"}
+{"code": "COMP607", "title": "Information Security Technologies", "semesters": ["S2"], "year": 2, "majors": ["Digital Services", "Networks & Cybersecurity"], "note": "", "core_type": "Major/Elective"}
+{"code": "COMP609", "title": "Network and System Administration", "semesters": ["S1"], "year": 2, "majors": ["Networks & Cybersecurity"], "note": "", "core_type": "Major/Elective"}
+{"code": "COMP610", "title": "Data Structures and Algorithms", "semesters": ["S1", "S2"], "year": 2, "majors": ["Computer Science", "Data Science", "Digital Services", "Networks & Cybersecurity", "Software Development"], "note": "", "core_type": "Major/Elective"}
+{"code": "COMP611", "title": "Algorithm Design and Analysis", "semesters": ["S2"], "year": 2, "majors": ["Computer Science", "Software Development"], "note": "", "core_type": "Major/Elective"}
+{"code": "COMP612", "title": "Computer Graphics Programming", "semesters": ["S2"], "year": 2, "majors": ["Computer Science", "Software Development"], "note": "Game pathway: may replace COMP602 and COMP713/COMP721 ONLY with COMP710 also taken", "core_type": "Major/Elective"}
+{"code": "COMP613", "title": "Combinatorics and Graph Theory", "semesters": ["S1"], "year": 2, "majors": ["Computer Science", "Data Science", "Software Development"], "note": "", "core_type": "Major/Elective"}
+{"code": "COMP615", "title": "Foundations of Data Science", "semesters": ["S1"], "year": 2, "majors": ["Data Science"], "note": "", "core_type": "Major/Elective"}
+{"code": "COMP616", "title": "Statistics for Data Science", "semesters": ["S1"], "year": 2, "majors": ["Data Science"], "note": "", "core_type": "Major/Elective"}
+{"code": "ENEL611", "title": "Computer Network Applications", "semesters": ["S1"], "year": 2, "majors": ["Networks & Cybersecurity"], "note": "", "core_type": "Major/Elective"}
+{"code": "INFS603", "title": "Needs Analysis, Acquisition and Training", "semesters": ["S1"], "year": 2, "majors": ["Digital Services"], "note": "", "core_type": "Major/Elective"}
+{"code": "INFS604", "title": "Service Modelling", "semesters": ["S1"], "year": 2, "majors": ["Digital Services"], "note": "", "core_type": "Major/Elective"}
+{"code": "INFS605", "title": "Microservices", "semesters": ["S2"], "year": 2, "majors": ["Digital Services"], "note": "", "core_type": "Major/Elective"}
+{"code": "STAT603", "title": "Forecasting", "semesters": ["S2"], "year": 2, "majors": ["Data Science"], "note": "", "core_type": "Major/Elective"}
+{"code": "COMP700", "title": "Text and Vision Intelligence", "semesters": ["S2"], "year": 3, "majors": ["Data Science"], "note": "", "core_type": "Major/Elective"}
+{"code": "COMP701", "title": "Nature Inspired Computing", "semesters": ["S1"], "year": 3, "majors": ["Data Science"], "note": "", "core_type": "Major/Elective"}
+{"code": "COMP702", "title": "Research & Development Project (Part 1)", "semesters": ["S1", "S2"], "year": 3, "majors": ["Computer Science", "Data Science", "Digital Services", "Networks & Cybersecurity", "Software Development"], "note": "", "core_type": "Year3 R&D Core (all majors)"}
+{"code": "COMP703", "title": "Research & Development Project (Part 2)", "semesters": ["S1", "S2"], "year": 3, "majors": ["Computer Science", "Data Science", "Digital Services", "Networks & Cybersecurity", "Software Development"], "note": "", "core_type": "Year3 R&D Core (all majors)"}
+{"code": "COMP710", "title": "Game Programming", "semesters": ["S1"], "year": 3, "majors": ["Software Development"], "note": "Game pathway: requires COMP612; see replacement rule", "core_type": "Major/Elective"}
+{"code": "COMP711", "title": "Theory of Computation", "semesters": ["S2"], "year": 3, "majors": ["Computer Science"], "note": "", "core_type": "Major/Elective"}
+{"code": "COMP712", "title": "Programming Languages", "semesters": ["S2"], "year": 3, "majors": ["Computer Science"], "note": "", "core_type": "Major/Elective"}
+{"code": "COMP713", "title": "Distributed and Mobile Systems", "semesters": [], "year": 3, "majors": ["Computer Science", "Software Development"], "note": "not running", "core_type": "Major/Elective"}
+{"code": "COMP714", "title": "Advanced Network Technologies", "semesters": ["S2"], "year": 3, "majors": ["Networks & Cybersecurity"], "note": "", "core_type": "Major/Elective"}
+{"code": "COMP715", "title": "Network Security", "semesters": ["S2"], "year": 3, "majors": ["Networks & Cybersecurity"], "note": "", "core_type": "Major/Elective"}
+{"code": "COMP716", "title": "Highly Secure Systems", "semesters": ["S1"], "year": 3, "majors": ["Networks & Cybersecurity"], "note": "", "core_type": "Major/Elective"}
+{"code": "COMP717", "title": "Artificial Intelligence", "semesters": ["S1"], "year": 3, "majors": ["Data Science"], "note": "", "core_type": "Major/Elective"}
+{"code": "COMP718", "title": "Information Security Management", "semesters": ["S1"], "year": 3, "majors": ["Digital Services", "Networks & Cybersecurity"], "note": "", "core_type": "Major/Elective"}
+{"code": "COMP719", "title": "Applied Human Computer Interaction", "semesters": ["S1"], "year": 3, "majors": ["Computer Science", "Software Development"], "note": "", "core_type": "Major/Elective"}
+{"code": "COMP721", "title": "Web Development", "semesters": ["S1"], "year": 3, "majors": ["Software Development"], "note": "", "core_type": "Major/Elective"}
+{"code": "COMP723", "title": "Data Mining and Knowledge Engineering", "semesters": ["S2"], "year": 3, "majors": ["Data Science"], "note": "", "core_type": "Major/Elective"}
+{"code": "COMP726", "title": "Blockchains and Cryptocurrencies", "semesters": ["S2"], "year": 3, "majors": ["Digital Services"], "note": "", "core_type": "Major/Elective"}
+{"code": "COMP728", "title": "IoT and Applications", "semesters": ["S2"], "year": 3, "majors": ["Digital Services"], "note": "", "core_type": "Major/Elective"}
+{"code": "COMP729", "title": "Enterprise Networks", "semesters": ["S2"], "year": 3, "majors": ["Networks & Cybersecurity"], "note": "", "core_type": "Major/Elective"}
+{"code": "ENSE701", "title": "Contemporary Issues in Software Engineering", "semesters": ["S1", "S2"], "year": 3, "majors": ["Software Development"], "note": "", "core_type": "Major/Elective"}
+{"code": "INFS704", "title": "Service Innovation and Design", "semesters": ["S1"], "year": 3, "majors": ["Digital Services"], "note": "", "core_type": "Major/Elective"}

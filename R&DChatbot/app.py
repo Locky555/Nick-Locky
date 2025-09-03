@@ -1,13 +1,12 @@
-# app.py
 import os, re, requests
 from flask import Flask, request, jsonify, render_template
 from multi_rag import MultiRAG, MAJORS, COURSE_CODE_RE
 
 # ---------- Config ----------
-COURSE_DOCS_DIR = os.getenv("COURSE_DOCS_DIR", "docs")                  # JSONL lives here
-FAISS_JSONL_DIR = os.getenv("FAISS_JSONL_DIR", "faiss_index_jsonl_v2")  # fresh name => fresh build
-PDF_DOCS_DIR    = os.getenv("PDF_DOCS_DIR", "docs_pdf")                 # course PDFs here
-FAISS_PDF_DIR   = os.getenv("FAISS_PDF_DIR", "faiss_index_pdfs_v1")
+COURSE_DOCS_DIR = os.getenv("COURSE_DOCS_DIR", "docs")                  # JSONL lives here (catalog_master.jsonl)
+FAISS_JSONL_DIR = os.getenv("FAISS_JSONL_DIR", "faiss_index_jsonl_v2")  # change to force rebuild
+PDF_DOCS_DIR    = os.getenv("PDF_DOCS_DIR", "docs_pdf")                 # course PDFs here (e.g., COMP500.pdf)
+FAISS_PDF_DIR   = os.getenv("FAISS_PDF_DIR", "faiss_index_pdfs_v2")     # change to force rebuild
 
 OLLAMA_API_URL  = os.getenv("OLLAMA_API_URL", "http://127.0.0.1:11434/api/chat")
 MODEL_NAME      = os.getenv("OLLAMA_MODEL_NAME", "deepseek-v2:16b")
@@ -46,7 +45,7 @@ NEG_PHRASES = (
 )
 
 def drop_unsure_lines(text: str) -> str:
-    """Remove hedgy/negative lines like 'not specified' to keep answers clean."""
+    """Remove hedgy/negative lines to keep answers clean."""
     lines = [ln for ln in (text or "").splitlines()]
     kept = []
     for ln in lines:
@@ -102,15 +101,19 @@ def index():
 def health():
     return "BCIS Course Advisor is running", 200
 
+@app.route("/debug/pdfindex")
+def debug_pdfindex():
+    return jsonify(rag.debug_pdf_index() or [])
+
 @app.route("/chat", methods=["POST"])
 def chat():
     user_input = request.json.get("message", "")
     msg = user_input.lower()
     print("💬 User:", user_input)
 
-    # ===== Detect a course code upfront =====
+    # Detect a course code upfront
     code_match = COURSE_CODE_RE.search(user_input)
-    course_code = code_match.group(0).upper() if code_match else None
+    course_code = code_match.group(0).upper().replace(" ", "") if code_match else None
 
     # ===== 1) Deterministic lists (never PDFs here) =====
     if re.search(r"(study\s*plan|course\s*list|list\s+courses?|show\s+all|\bcourses?\b|\bpapers\b|\bsubjects\b)", msg):
@@ -123,7 +126,8 @@ def chat():
             return jsonify({"response": f"No courses found for {major}" + (f" Year {yr}" if yr else "")})
 
         by_year = {}
-        for r in rows: by_year.setdefault(r["year"], []).append(r)
+        for r in rows:
+            by_year.setdefault(r["year"], []).append(r)
         single_year_view = (yr is not None) or (len(by_year) == 1)
 
         lines = [f"{major} courses" + (f" — Year {yr}" if yr else "")]
@@ -141,7 +145,7 @@ def chat():
 
         return jsonify({"response": "\n".join(lines)})
 
-    # ===== 2) Conversational prereqs/semester lookup (catalog first) =====
+    # ===== 2) Prereqs/semester lookup (catalog first; fallback PDFs) =====
     if course_code and re.search(r"(prereq|pre-req|prerequisite|semester|offered|available)", msg):
         rec = rag.get_course_by_code(course_code)
         if rec:
@@ -151,7 +155,7 @@ def chat():
             header = f"{course_code} — {title} (Year {year}, {sems})"
             return jsonify({"response": f"{header}\n{prereq_line(rec)}"})
 
-        # Try PDFs if not in catalog
+        # Fallback: PDFs
         ctx = rag.retrieve_pdf_context(course_code, question=user_input, k=10, max_chars=1200)
         prompt = f"""Extract (if present) the semester(s) when it is offered and the prerequisites.
 Write 1–2 short lines, conversational, with no headings. Omit anything not explicitly in the context.
@@ -166,9 +170,9 @@ Answer:"""
             ans = "No details found in my sources."
         return jsonify({"response": f"{course_code}\n{ans}"})
 
-    # ===== 3) Course PDF summary/workload/etc. (conversational) =====
-    if course_code and re.search(r"(what\s+is|tell\s+me\s+about|summary|summarise|summarize|hours|workload|assessment|overview|learning\s+outcomes|syllabus|recommend)", msg):
-        # Build a light header from catalog if available
+    # ===== 3) “What is COMPxxx?” — PDF summary (paraphrased) =====
+    if course_code and re.search(r"(what\s+is|tell\s+me\s+about|summary|summarise|summarize|overview|description|hours|workload|assessment|learning\s+outcomes|syllabus|recommend)", msg):
+        # Header from catalog
         header_lines = []
         rec = rag.get_course_by_code(course_code)
         if rec:
@@ -178,18 +182,24 @@ Answer:"""
             header_lines.append(f"{course_code} — {title} (Year {year}, {sems})")
             header_lines.append(prereq_line(rec))
 
-        # Pull relevant PDF chunks for this course
-        ctx = rag.retrieve_pdf_context(course_code, question=user_input, k=10, max_chars=1600)
+        # Pull description + workload + assessment + materials
+        ctx = rag.summarize_course_pdf(course_code, user_input, max_chars=1600)
 
-        # Ask for a short, conversational summary + optional bullets only if present
-        prompt = f"""Using ONLY the context, write a brief conversational summary of {course_code}:
-- 1–3 short sentences describing what the course covers.
-- Then include up to two bullets ONLY IF explicitly present:
-  • one bullet for "Total learning hours: N" or "Approx. weekly commitment: N hours/week"
-  • one bullet for "Assessment: …"
-- If a detail is not in the context, omit it entirely (do NOT say "not specified").
-- No section headings. Keep it light and natural.
-- Add a single citation at the end of the paragraph or the last bullet like [Source: FILENAME.pdf].
+        prompt = f"""You are writing a concise, paraphrased course overview from an official outline.
+Use ONLY the context. Do NOT copy sentences verbatim; rephrase in your own words.
+
+Output format:
+- First: 2–4 short sentences describing what students will learn and how the course runs.
+- Then add up to THREE bullets ONLY IF the context explicitly contains them:
+  • Total learning hours or weekly commitment.
+  • Assessment components (e.g., tests/assignments/projects) — include percentages if shown.
+  • Delivery/materials (e.g., lectures, labs, tutorials, group project, online activities).
+- If an item is not in the context, omit it entirely (no “not specified”).
+
+Hard limits:
+- Max ~120 words total.
+- No section headings.
+- End with a single citation like [Source: FILENAME.pdf].
 
 Context:
 {ctx}

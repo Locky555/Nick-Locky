@@ -1,4 +1,3 @@
-# multi_rag.py
 import os, json, re
 from pathlib import Path
 from typing import List, Optional
@@ -17,13 +16,41 @@ MAJORS = [
     "Digital Services",
 ]
 
-COURSE_CODE_RE = re.compile(r"\b(?:COMP|MATH|STAT|INFS|ENEL|ENSE)\d{3}\b", re.I)
+COURSE_CODE_RE = re.compile(r"\b(?:COMP|MATH|STAT|INFS|ENEL|ENSE)\s*\d{3}\b", re.I)
+
+# -------- Section Hints for PDF chunk tagging --------
+DESC_HINTS = (
+    "course description", "description", "paper description",
+    "overview", "synopsis", "aim", "course aim", "paper aim", "purpose"
+)
+WORKLOAD_HINTS = (
+    "learning hours", "workload", "weekly hours", "total hours",
+    "prescribed learning hours", "time commitment"
+)
+ASSESS_HINTS = (
+    "assessment", "assessments", "assessment structure",
+    "weighting", "%", "percentage", "exam", "test", "assignment",
+    "project", "report", "presentation", "lab", "quiz"
+)
+MATERIAL_HINTS = (
+    "delivery", "learning and teaching", "materials",
+    "lectures", "tutorials", "labs", "laboratories", "workshops",
+    "online activities", "studio", "group work", "team project"
+)
+TOPIC_HINTS = (
+    "topics", "content", "learning outcomes", "students will learn",
+    "covers", "includes", "focuses on"
+)
+
+def _contains_any(text: str, phrases) -> bool:
+    low = (text or "").lower()
+    return any(p in low for p in phrases)
 
 class MultiRAG:
     """
     Hybrid retriever:
       - JSONL catalog (deterministic: lists, prereqs, semesters)
-      - PDF store (per-course summaries/workload/etc.)
+      - PDF store (per-course summaries/workload/etc., paraphrased)
     """
     def __init__(
         self,
@@ -46,6 +73,7 @@ class MultiRAG:
 
         # PDF index (optional; only if PDFs exist)
         self.pdf_store = None
+        self.pdf_meta_index = []
         if self.pdf_folder.exists():
             self._build_pdf_store()
 
@@ -68,16 +96,19 @@ class MultiRAG:
             with open(p, "r", encoding="utf-8") as f:
                 for line in f:
                     line = line.strip()
-                    if not line: continue
+                    if not line:
+                        continue
                     r = json.loads(line)
-                    code = (r.get("code") or "").upper()
+                    code = (r.get("code") or "").upper().replace(" ", "")
                     if code and code not in seen:
+                        # Normalize + keep extras
                         r["code"] = code
                         if "prerequisites" not in r:
                             r["prerequisites"] = r.get("prereqs", []) or []
                         if "semesters" not in r:
                             r["semesters"] = r.get("semester", []) or []
-                        recs.append(r); seen.add(code)
+                        recs.append(r)
+                        seen.add(code)
 
         print(f"📚 Loaded {len(recs)} JSONL course records from: "
               f"{', '.join(p.name for p in files)}")
@@ -107,6 +138,7 @@ class MultiRAG:
                     "core_type": r.get("core_type", "Major/Elective"),
                     "semesters": sems,
                     "prerequisites": prereqs,
+                    "title": r.get("title", "")
                 }
             ))
         return docs
@@ -129,7 +161,8 @@ class MultiRAG:
             recs = [r for r in recs if any(str(x).lower() == mlow for x in r.get("majors", []))]
         if year is not None:
             try:
-                y = int(year); recs = [r for r in recs if r.get("year") == y]
+                y = int(year)
+                recs = [r for r in recs if r.get("year") == y]
             except ValueError:
                 pass
         if semester:
@@ -139,7 +172,7 @@ class MultiRAG:
         return sorted(recs, key=lambda r: (r.get("year", 99), r.get("code", "")))
 
     def get_course_by_code(self, code: str) -> Optional[dict]:
-        code = (code or "").upper()
+        code = (code or "").upper().replace(" ", "")
         for r in self.catalog:
             if r.get("code") == code:
                 return r
@@ -155,12 +188,14 @@ class MultiRAG:
         if major:
             mlow = major.lower()
             by_major = [d for d in docs if any(str(m).lower() == mlow for m in d.metadata.get("majors", []))]
-            if by_major: docs = by_major
+            if by_major:
+                docs = by_major
         if year is not None:
             try:
                 y = int(year)
                 by_year = [d for d in docs if d.metadata.get("year") == y]
-                if by_year: docs = by_year
+                if by_year:
+                    docs = by_year
             except ValueError:
                 pass
 
@@ -169,18 +204,40 @@ class MultiRAG:
             src = d.metadata.get("source")
             key = (src, d.metadata.get("code"))
             frag = (d.page_content or "").strip()
-            if not frag or key in used: continue
+            if not frag or key in used:
+                continue
             piece = frag + f"\n[Source: {src}]\n"
-            if size + len(piece) > max_chars: break
-            out.append(piece); size += len(piece); used.add(key)
+            if size + len(piece) > max_chars:
+                break
+            out.append(piece)
+            size += len(piece)
+            used.add(key)
         return "\n---\n".join(out) if out else "(no high-confidence matches)\n"
 
     # ------------- PDF STORE -------------
+    def _infer_code_from_filename(self, name: str) -> Optional[str]:
+        m = COURSE_CODE_RE.search(name or "")
+        return m.group(0).upper().replace(" ", "") if m else None
+
+    def _infer_code_from_text(self, text: str) -> Optional[str]:
+        m = COURSE_CODE_RE.search(text or "")
+        return m.group(0).upper().replace(" ", "") if m else None
+
+    def _tag_section(self, text: str) -> str:
+        t = (text or "").lower()
+        if _contains_any(t, DESC_HINTS):     return "description"
+        if _contains_any(t, WORKLOAD_HINTS): return "workload"
+        if _contains_any(t, ASSESS_HINTS):   return "assessment"
+        if _contains_any(t, MATERIAL_HINTS): return "materials"
+        if _contains_any(t, TOPIC_HINTS):    return "topics"
+        return "general"
+
     def _build_pdf_store(self):
         print(f"🔧 Building PDF FAISS in: {self.db_path_pdf.resolve()}")
         docs: List[Document] = []
-        splitter = RecursiveCharacterTextSplitter(chunk_size=900, chunk_overlap=140)
+        self.pdf_meta_index = []
 
+        splitter = RecursiveCharacterTextSplitter(chunk_size=900, chunk_overlap=140)
         pdfs = sorted(self.pdf_folder.glob("*.pdf"))
         if not pdfs:
             print("⚠️ No PDFs found. Skipping PDF FAISS.")
@@ -189,43 +246,103 @@ class MultiRAG:
         for pdf in pdfs:
             loader = PyPDFLoader(str(pdf))
             pages = loader.load()
+
+            filename_code = self._infer_code_from_filename(pdf.name)
+            first_text = "\n".join([p.page_content for p in pages[:2]]) if pages else ""
+            text_code = self._infer_code_from_text(first_text)
+            course_code = filename_code or text_code
+
             chunks = splitter.split_documents(pages)
             for ch in chunks:
                 ch.metadata = ch.metadata or {}
                 ch.metadata["source"] = pdf.name
-            docs.extend(chunks)
+                ch.metadata["section"] = self._tag_section(ch.page_content)
+                if course_code:
+                    ch.metadata["course_code"] = course_code
+                docs.extend([ch])
+
+            self.pdf_meta_index.append({
+                "file": pdf.name,
+                "detected_code": course_code,
+                "has_code_from_filename": bool(filename_code),
+                "has_code_from_text": bool(text_code),
+                "pages": len(pages)
+            })
 
         self.pdf_store = FAISS.from_documents(docs, self.embeddings)
         self.db_path_pdf.mkdir(parents=True, exist_ok=True)
         self.pdf_store.save_local(str(self.db_path_pdf))
-        print(f"✅ PDF FAISS built with {len(docs)} chunks.")
+        print(f"✅ PDF FAISS built with {len(docs)} chunks across {len(pdfs)} files.")
 
-    def retrieve_pdf_context(self, course_code: str, question: str = "",
-                             k: int = 10, max_chars: int = 1600) -> str:
+    def debug_pdf_index(self) -> List[dict]:
+        return getattr(self, "pdf_meta_index", [])
+
+    def retrieve_pdf_context(
+        self,
+        course_code: str,
+        question: str = "",
+        prefer_description: bool = True,
+        prefer_sections: tuple = (),
+        k: int = 10,
+        max_chars: int = 1600
+    ) -> str:
         if self.pdf_store is None:
             return "(no PDFs indexed)"
 
-        code = (course_code or "").upper()
-        query = (code + " " + (question or "")).strip()
-        results = self.pdf_store.similarity_search_with_score(query, k=max(20, k * 2))
+        code = (course_code or "").upper().replace(" ", "")
+        q = (question or "").strip()
 
-        filtered = []
-        for d, _ in results:
-            src = (d.metadata.get("source") or "").lower()
-            if code.lower() in src:
-                filtered.append(d)
-            if len(filtered) >= k:
-                break
-        if not filtered:
-            filtered = [d for d, _ in results][:k]
+        # Expand query to bias toward useful sections
+        if prefer_description:
+            q = f"{code} description overview aim synopsis {q}".strip()
+        else:
+            q = f"{code} {q}".strip()
 
+        results = self.pdf_store.similarity_search_with_score(q, k=max(30, k * 3))
+        candidates = [d for d, _ in results]
+
+        # Strong filter to the right course
+        strict = [d for d in candidates if (d.metadata.get("course_code") or "").upper() == code]
+        if not strict:
+            strict = [d for d in candidates if code.lower() in (d.metadata.get("source") or "").lower()]
+        pool = strict if strict else candidates
+
+        # Section boosting
+        if not prefer_sections and prefer_description:
+            prefer_sections = ("description", "workload", "assessment", "materials")
+
+        if prefer_sections:
+            order = {sec: i for i, sec in enumerate(prefer_sections)}
+            def sec_key(d):
+                sec = d.metadata.get("section") or "general"
+                return (0 if sec in order else 1, order.get(sec, 999))
+            pool = sorted(pool, key=sec_key)
+
+        # Build compact context
         used, out, size = set(), [], 0
-        for d in filtered:
+        for d in pool:
             src = d.metadata.get("source")
-            key = (src, d.page_content[:80])
+            key = (src, hash(d.page_content))
             frag = (d.page_content or "").strip()
-            if not frag or key in used: continue
+            if not frag or key in used:
+                continue
             piece = frag + f"\n[Source: {src}]\n"
-            if size + len(piece) > max_chars: break
-            out.append(piece); size += len(piece); used.add(key)
+            if size + len(piece) > max_chars:
+                break
+            out.append(piece)
+            size += len(piece)
+            used.add(key)
+            if len(out) >= k:
+                break
+
         return "\n---\n".join(out) if out else "(no high-confidence matches)\n"
+
+    def summarize_course_pdf(self, course_code: str, question: str = "", max_chars: int = 1600) -> str:
+        return self.retrieve_pdf_context(
+            course_code=course_code,
+            question=question,
+            prefer_description=True,
+            prefer_sections=("description", "workload", "assessment", "materials", "topics"),
+            k=12,
+            max_chars=max_chars
+        )
