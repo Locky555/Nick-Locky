@@ -1,4 +1,5 @@
 import os, re, requests
+from difflib import get_close_matches
 from flask import Flask, request, jsonify, render_template
 from multi_rag import MultiRAG, MAJORS, COURSE_CODE_RE
 
@@ -9,7 +10,7 @@ PDF_DOCS_DIR    = os.getenv("PDF_DOCS_DIR", "docs_pdf")                 # course
 FAISS_PDF_DIR   = os.getenv("FAISS_PDF_DIR", "faiss_index_pdfs_v2")     # change to force rebuild
 
 OLLAMA_API_URL  = os.getenv("OLLAMA_API_URL", "http://127.0.0.1:11434/api/chat")
-MODEL_NAME      = os.getenv("OLLAMA_MODEL_NAME", "deepseek-v2:16b")
+MODEL_NAME      = os.getenv("OLLAMA_MODEL_NAME", "deepseek-r1:8b")
 
 # ---------- Flask ----------
 app = Flask(__name__, template_folder="templates", static_folder="static")
@@ -22,6 +23,25 @@ rag = MultiRAG(
     pdf_folder=PDF_DOCS_DIR,
     db_path_pdf=FAISS_PDF_DIR,
 )
+
+# ---------- Small talk ----------
+SMALL_TALK_RESPONSES = {
+    "hello": "Hi there! How can I help you with your study plan?",
+    "hi": "Hello! How can I assist you today?",
+    "hey": "Hey! Looking for a study plan or need help?",
+    "thanks": "You're welcome!",
+    "thank you": "Happy to help!",
+    "who are you": "I'm a helpful assistant trained to guide you through your course planning and study queries.",
+    "who is the best rnd client": "The legend Matthew! 😎",
+}
+
+def match_small_talk(input_text: str):
+    if not input_text:
+        return None
+    matches = get_close_matches(input_text.lower(), SMALL_TALK_RESPONSES.keys(), n=1, cutoff=0.8)
+    if matches:
+        return SMALL_TALK_RESPONSES[matches[0]]
+    return None
 
 # ---------- Helpers ----------
 def detect_major(text: str):
@@ -110,6 +130,11 @@ def chat():
     user_input = request.json.get("message", "")
     msg = user_input.lower()
     print("💬 User:", user_input)
+
+    # ===== 0) Small talk shortcut =====
+    small = match_small_talk(user_input)
+    if small:
+        return jsonify({"response": small})
 
     # Detect a course code upfront
     code_match = COURSE_CODE_RE.search(user_input)
