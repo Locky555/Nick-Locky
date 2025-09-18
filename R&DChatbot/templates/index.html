@@ -12,25 +12,23 @@
       align-items: center;
       height: 100vh;
     }
-   #chat-container {
-  width: 360px;
-  height: 600px; /* Fixed height */
-  background: white;
-  border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-   #messages {
-  flex-grow: 1;
-  padding: 15px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-}
-
+    #chat-container {
+      width: 360px;
+      height: 600px; /* Fixed height */
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    #messages {
+      flex-grow: 1;
+      padding: 15px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
     .message {
       margin: 10px 0;
       max-width: 80%;
@@ -50,6 +48,26 @@
       color: black;
       align-self: flex-start;
       float: left;
+    }
+    #suggested {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      padding: 8px;
+      border-top: 1px solid #ddd;
+      background: #fafafa;
+    }
+    .suggested-btn {
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 15px;
+      padding: 6px 10px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .suggested-btn:hover {
+      background: #0056b3;
     }
     #input-box {
       display: flex;
@@ -74,6 +92,25 @@
 <body>
   <div id="chat-container">
     <div id="messages"></div>
+
+    <!-- Suggested Questions -->
+    <div id="suggested">
+
+      <button class="suggested-btn" onclick="sendMessage('Who are you?')">
+        Who are you?
+      </button>
+      <button class="suggested-btn" onclick="sendMessage('Tell me about COMP500')">
+        Tell me about COMP500?
+      </button>
+      <button class="suggested-btn" onclick="sendMessage('COMP503 Prerequisites')">
+        What are COMP503 Prerequisites
+      </button>
+      <button class="suggested-btn" onclick="sendMessage('Software Devolpment Year 2')">
+        Tell me the Software Devolpment Courses for Year 2
+      </button>
+      
+    </div>
+
     <div id="input-box">
       <input type="text" id="user-input" placeholder="Type a message..." />
       <button id="send-button">Send</button>
@@ -93,8 +130,10 @@
       messagesDiv.scrollTop = messagesDiv.scrollHeight;
     }
 
-    sendButton.onclick = async () => {
-      const message = input.value.trim();
+    async function sendMessage(message = null) {
+      if (!message) {
+        message = input.value.trim();
+      }
       if (!message) return;
 
       appendMessage(message, 'user');
@@ -111,11 +150,13 @@
       // Replace the "..." placeholder
       const allMessages = messagesDiv.querySelectorAll('.bot');
       if (allMessages.length > 0) allMessages[allMessages.length - 1].textContent = data.response;
-    };
+    }
 
+    sendButton.onclick = () => sendMessage();
     input.addEventListener('keypress', function (e) {
-      if (e.key === 'Enter') sendButton.click();
+      if (e.key === 'Enter') sendMessage();
     });
   </script>
 </body>
 </html>
+
